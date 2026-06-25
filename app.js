@@ -5,13 +5,26 @@
 // Definitions
 const DECADES = ["1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
 const TEAM_MAP = {
-    "adelaide": "Adelaide", "brisbaneb": "Brisbane Bears", "brisbanel": "Brisbane Lions",
-    "carlton": "Carlton", "collingwood": "Collingwood", "essendon": "Essendon",
-    "fitzroy": "Fitzroy", "fremantle": "Fremantle", "geelong": "Geelong",
-    "goldcoast": "Gold Coast", "gws": "GWS Giants", "hawthorn": "Hawthorn",
-    "melbourne": "Melbourne", "kangaroos": "Kangaroos", "padelaide": "Port Adelaide",
-    "richmond": "Richmond", "stkilda": "St Kilda", "swans": "Swans",
-    "westcoast": "West Coast", "bulldogs": "Bulldogs"
+    "adelaide": { name: "Adelaide", aliases: ["adelaide", "crows"] },
+    "brisbaneb": { name: "Brisbane Bears", aliases: ["brisbanebears", "brisbane bears"] },
+    "brisbanel": { name: "Brisbane Lions", aliases: ["brisbanelions", "brisbane lions", "brisbane"] },
+    "carlton": { name: "Carlton", aliases: ["carlton", "blues"] },
+    "collingwood": { name: "Collingwood", aliases: ["collingwood", "magpies"] },
+    "essendon": { name: "Essendon", aliases: ["essendon", "bombers"] },
+    "fitzroy": { name: "Fitzroy", aliases: ["fitzroy", "maroons"] },
+    "fremantle": { name: "Fremantle", aliases: ["fremantle", "dockers", "walyalup"] },
+    "geelong": { name: "Geelong", aliases: ["geelong", "cats"] },
+    "goldcoast": { name: "Gold Coast", aliases: ["goldcoast", "gold coast", "suns"] },
+    "gws": { name: "GWS Giants", aliases: ["gws", "greater western sydney", "giants"] },
+    "hawthorn": { name: "Hawthorn", aliases: ["hawthorn", "hawks"] },
+    "melbourne": { name: "Melbourne", aliases: ["melbourne", "demons", "narrm"] },
+    "kangaroos": { name: "North Melbourne", aliases: ["north melbourne", "kangaroos", "northmelbourne"] },
+    "padelaide": { name: "Port Adelaide", aliases: ["port adelaide", "power", "yartapuulti"] },
+    "richmond": { name: "Richmond", aliases: ["richmond", "tigers"] },
+    "stkilda": { name: "St Kilda", aliases: ["st kilda", "stkilda", "saints", "euro-yroke"] },
+    "swans": { name: "Sydney", aliases: ["sydney", "swans", "south melbourne", "southmelbourne"] },
+    "westcoast": { name: "West Coast", aliases: ["west coast", "westcoast", "eagles"] },
+    "bulldogs": { name: "Footscray", aliases: ["footscray", "western bulldogs", "westernbulldogs", "bulldogs"] }
 };
 const TEAM_SLUGS = Object.keys(TEAM_MAP);
 
@@ -90,18 +103,23 @@ async function finalizeSpin() {
 }
 
 async function loadAndFilterData(teamSlug, decadeStr) {
-    let pool = [];
+    // ... (Coaches logic same as before) ...
 
-    // 1. Fetch Coaches for this era
-    let eraCoaches = coachesDB.filter(c => {
-        if (c.Team_Slug !== teamSlug) return false;
-        const years = c.Seas.split('-');
-        const startY = parseInt(years[0]);
-        const endY = years[1] ? parseInt(years[1]) : 2026;
-        const decStart = parseInt(decadeStr.substring(0, 4));
-        // Check if coach tenure overlaps with the spun decade
-        return (startY <= decStart + 9 && endY >= decStart);
-    });
+    try {
+        if (currentlyLoadedDecade !== decadeStr) {
+            const response = await fetch(`decades/${decadeStr}.json`);
+            loadedDecadeData = await response.json();
+            currentlyLoadedDecade = decadeStr;
+        }
+
+        const teamConfig = TEAM_MAP[teamSlug];
+
+        // Filter players: check if the JSON team name matches the canonical name OR any alias
+        const rawTeamPlayers = loadedDecadeData.filter(p => {
+            const jsonTeam = p.Team.toLowerCase().replace(/\s+/g, '');
+            return jsonTeam === teamConfig.name.toLowerCase().replace(/\s+/g, '') || 
+                   teamConfig.aliases.includes(jsonTeam);
+        });
     
     eraCoaches.forEach(c => pool.push({ ...c, isCoach: true }));
 
