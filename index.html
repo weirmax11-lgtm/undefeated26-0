@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>26-0: AFL Ultimate Draft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /* RETRO ARCADE STYLING */
+        :root {
+            --bg-color: #0a0a0c;
+            --neon-green: #39ff14;
+            --neon-cyan: #0ff;
+            --neon-pink: #ff007f;
+            --dark-green: #113311;
+            --panel-bg: rgba(0, 20, 0, 0.8);
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--neon-green);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+
+        /* CRT Scanline Overlay */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* MODALS (Popups) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-box {
+            background: var(--panel-bg);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 20px var(--neon-cyan);
+            padding: 30px;
+            max-width: 600px;
+            text-align: center;
+            z-index: 101;
+        }
+
+        .modal-box h1, .modal-box h2 {
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: transparent;
+            border: 2px solid var(--neon-green);
+            color: var(--neon-green);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 10px;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .btn.pink { border-color: var(--neon-pink); color: var(--neon-pink); text-shadow: none; }
+        .btn.pink:hover { background: var(--neon-pink); color: black; box-shadow: 0 0 15px var(--neon-pink); }
+
+        /* MAIN LAYOUT */
+        .header {
+            text-align: center;
+            padding: 15px;
+            border-bottom: 2px solid var(--neon-green);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .slots-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .slot-window {
+            background: #000;
+            border: 2px solid var(--neon-cyan);
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            width: 250px;
+            text-align: center;
+            color: white;
+            text-shadow: 0 0 8px white;
+            overflow: hidden;
+            height: 30px;
+        }
+
+        .main-area {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        /* FIELD UI */
+        .field-container {
+            flex: 1;
+            background: radial-gradient(ellipse at center, var(--dark-green) 0%, #000 100%);
+            border: 3px solid white;
+            border-radius: 50% / 30%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .field-line { display: flex; gap: 40px; }
+        
+        .circle-slot {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-align: center;
+            transition: 0.3s;
+            background: rgba(0,0,0,0.6);
+        }
+
+        .circle-slot:hover { border-color: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+        .circle-slot.filled {
+            border: 2px solid var(--neon-green);
+            background: var(--neon-green);
+            color: black;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-shadow: none;
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .coach-slot {
+            margin-top: 10px;
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            padding: 5px 15px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .coach-slot.filled { background: var(--neon-pink); color: black; }
+
+        /* ROSTER LIST */
+        .list-container {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 2px solid var(--neon-green);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            max-width: 400px;
+        }
+
+        .roster-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 10px;
+        }
+
+        /* Scrollbar styles */
+        .roster-list::-webkit-scrollbar { width: 8px; }
+        .roster-list::-webkit-scrollbar-track { background: #000; }
+        .roster-list::-webkit-scrollbar-thumb { background: var(--neon-green); }
+
+        .player-card {
+            border: 1px solid var(--neon-green);
+            padding: 10px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            transition: 0.2s;
+        }
+
+        .player-card:hover { background: rgba(57, 255, 20, 0.2); }
+        .player-card.active {
+            background: var(--neon-green);
+            color: black;
+            text-shadow: none;
+        }
+
+        .card-stats { font-size: 0.8rem; opacity: 0.8; margin-top: 5px; }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="introModal" class="modal-overlay">
+        <div class="modal-box">
+            <h1>26-0</h1>
+            <p>Welcome to the Ultimate VFL/AFL Roster Builder.</p>
+            <p>1. Spin the slots to generate a random Team and Decade.<br>
+               2. Select a Legend from that era's pool.<br>
+               3. Click a position on the oval to assign them.<br>
+               4. Draft an 18-man on-field squad + Coach to simulate a season!</p>
+            <button class="btn" onclick="showModeSelect()">Start Game</button>
+        </div>
+    </div>
+
+    <div id="modeModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2>Select Difficulty</h2>
+            <button class="btn" onclick="startGame('classic')">CLASSIC<br><small>Player stats visible</small></button>
+            <button class="btn pink" onclick="startGame('footyiq')">FOOTY IQ<br><small>Stats hidden - rely on your ball knowledge</small></button>
+        </div>
+    </div>
+
+    <div id="resultModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2>Simulation Complete</h2>
+            <h1 id="finalScoreText" style="font-size: 4rem; margin: 10px 0;">0 - 0</h1>
+            <p id="finalFeedbackText"></p>
+            <button class="btn" onclick="window.location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="slots-container">
+            <div class="slot-window" id="slotTeam">TEAM</div>
+            <div class="slot-window" id="slotDecade">DECADE</div>
+            <button class="btn pink" id="spinBtn" onclick="triggerSpin()">SPIN</button>
+        </div>
+        <div>
+            <div>Mode: <span id="modeDisplay" style="color:var(--neon-pink)"></span></div>
+            <div>Drafted: <span id="draftCount">0</span>/19</div>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="field-container">
+            <div class="field-line">
+                <div class="circle-slot" id="slot-F1" onclick="assignToField('F1')">FP</div>
+                <div class="circle-slot" id="slot-F2" onclick="assignToField('F2')">FF</div>
+                <div class="circle-slot" id="slot-F3" onclick="assignToField('F3')">FP</div>
+            </div>
+            <div class="field-line">
+                <div class="circle-slot" id="slot-HF1" onclick="assignToField('HF1')">HFF</div>
+                <div class="circle-slot" id="slot-HF2" onclick="assignToField('HF2')">CHF</div>
+                <div class="circle-slot" id="slot-HF3" onclick="assignToField('HF3')">HFF</div>
+            </div>
+            <div class="field-line" style="width: 100%; justify-content: space-around;">
+                <div class="circle-slot" id="slot-C1" onclick="assignToField('C1')">W</div>
+                <div class="circle-slot" id="slot-C2" onclick="assignToField('C2')">C</div>
+                <div class="circle-slot" id="slot-C3" onclick="assignToField('C3')">W</div>
+            </div>
+            <div class="field-line" style="gap: 20px;">
+                <div class="circle-slot" id="slot-Ruck" onclick="assignToField('Ruck')">RUK</div>
+                <div class="circle-slot" id="slot-RR" onclick="assignToField('RR')">RR</div>
+                <div class="circle-slot" id="slot-R" onclick="assignToField('R')">ROV</div>
+            </div>
+            <div class="field-line">
+                <div class="circle-slot" id="slot-HB1" onclick="assignToField('HB1')">HBF</div>
+                <div class="circle-slot" id="slot-HB2" onclick="assignToField('HB2')">CHB</div>
+                <div class="circle-slot" id="slot-HB3" onclick="assignToField('HB3')">HBF</div>
+            </div>
+            <div class="field-line">
+                <div class="circle-slot" id="slot-B1" onclick="assignToField('B1')">BP</div>
+                <div class="circle-slot" id="slot-B2" onclick="assignToField('B2')">FB</div>
+                <div class="circle-slot" id="slot-B3" onclick="assignToField('B3')">BP</div>
+            </div>
+            <div class="coach-slot" id="slot-Coach" onclick="assignToField('Coach')">HEAD COACH</div>
+        </div>
+
+        <div class="list-container">
+            <h3 style="margin-top:0; border-bottom: 1px solid var(--neon-green); padding-bottom: 5px;">Draft Pool</h3>
+            <div class="roster-list" id="rosterList">
+                <div style="opacity: 0.5; text-align: center; margin-top: 50px;">
+                    Spin the slots to reveal candidates.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
