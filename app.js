@@ -1,7 +1,20 @@
 // ============================================================================
 // 26-0 RETRO ENGINE
 // ============================================================================
+console.log("Engine Online");
 
+function showModeSelect() {
+    console.log("showModeSelect triggered"); // This will tell us if the JS function is found
+    const intro = document.getElementById('introModal');
+    const mode = document.getElementById('modeModal');
+    
+    if (intro && mode) {
+        intro.classList.add('hidden');
+        mode.classList.remove('hidden');
+    } else {
+        console.error("Modal elements not found in DOM!");
+    }
+}
 // Definitions
 const DECADES = ["1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
 const TEAM_MAP = {
